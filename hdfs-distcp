@@ -1,0 +1,125 @@
+#!/bin/bash
+
+
+prog=DistCp
+
+arr=(0 0)
+taskId=0;
+get_pid() {
+  arr=(0 0)
+  info=$taskId
+  taskinfo=${info}
+  #echo $taskinfo
+  #e.g ps -ef|grep "taskid 1"
+  tasks=`ps -ef|grep $prog|grep -v grep|grep "taskid ${taskinfo}" |grep -v grep|wc -l`
+  #if [ `ps -ef|grep $prog|grep -v grep|grep "taskid"|grep -v grep|grep $taskId |grep -v grep|wc -l` -eq 2 ];then
+  if [ $tasks -gt 0 ];then
+	pids=`ps -ef|grep  "taskid ${taskinfo}"|grep -v grep|awk '{ print $2 }'`
+	#echo $pids
+	OLD_IFS="$IFS"
+	IFS=" "
+	arr=($pids)
+	IFS="$OLD_IFS"
+	#for s in ${arr[@]}
+	#do
+	#  echo "$s"
+	#done
+  fi
+}
+
+start() {
+  if [ $taskId -le 0 ];then
+    echo "1"
+    exit 1
+  fi
+  get_pid
+  prog_status=0
+  for s in ${arr[@]}
+  do
+    if [ $s -lt 1 ];then
+      prog_status=-1
+    fi
+  done
+  if [ $prog_status -eq 0 ]; then
+    #echo $prog" is running..."
+    echo "SUCCESS"
+    exit 0
+  fi
+  
+#sudo -u hunantv $prog --taskid $taskId >/dev/null 2>&1 &
+  $prog --taskid $taskId >/dev/null 2>&1 &  
+  echo "SUCCESS"
+}
+
+stop() {
+  if [ $taskId -le 0 ];then
+    echo "1"
+    exit 1
+  fi
+  get_pid
+  for s in ${arr[@]}
+  do
+    if [ $s -gt 1 ];then
+      kill -9 $s
+    fi
+  done
+
+  get_pid
+  prog_status=0
+  for s in ${arr[@]}
+  do
+    if [ $s -gt 1 ];then
+      prog_status=-1
+    fi
+  done
+
+  if [ $prog_status -eq 0 ]; then
+    echo "0"
+    echo "SUCCESS"
+  else
+    echo "1"
+  fi
+}
+
+status() {
+  get_pid 
+  prog_status=0
+  for s in ${arr[@]}
+  do
+    if [ $s -lt 1 ];then
+      prog_status=-1
+    fi
+  done
+  if [ $prog_status -eq 0 ]; then
+    echo $prog" is running"
+    echo "0"
+    echo "SUCCESS"
+  else
+    echo $prog" not running"
+    echo "1"
+  fi
+}
+
+service() {
+  taskId=$2
+  case "$1" in
+    start)
+      start
+      ;;
+    stop)
+      stop
+      ;;
+    status)
+      status
+      RETVAL=$?
+      ;;
+    *)
+      #echo $"Usage: $0 {start|stop|status}"
+      echo "1"
+  esac
+}
+
+service "$@"
+
+exit $RETVAL
+

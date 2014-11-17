@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
+#include <memory>
 
 using namespace std;
 
@@ -24,31 +26,33 @@ static void* runThread(void* arg)
 	while(true) {
 		dirpair* d = th->getCpFileInfo();
 		if( d == 0) return 0;
+		std::shared_ptr<dirpair> ptr(d);
+		time_t start_time = time(NULL);
 		string cmd = th->buildCommand(d);
 		LOG_DEBUG("COMMAND: %s",cmd.c_str());
-		int status = -1;
+		int status = execCmd(cmd);
 
-		if( (status = execCmd(cmd) ) == -1) {
-			th->putFailCpFileInfo(d);
+		time_t end_time = time(NULL);
+		if( status == -1) {
+			th->putFailCpFileInfo(d->taskId_, start_time, end_time, d->retryNum_);
 			LOG_ERROR("execute command failed: %s", cmd.c_str());
 		} else {
 			if(WIFEXITED(status)) {
 				if(WEXITSTATUS(status) == 0) {
-					th->putSuccCpFileInfo(d);
+					th->putSuccCpFileInfo(d->taskId_, start_time, end_time, d->retryNum_);
 				} else {
-					th->putFailCpFileInfo(d);
+					th->putFailCpFileInfo(d->taskId_, start_time, end_time, d->retryNum_);
 					LOG_ERROR("execute command failed: %s", cmd.c_str());
 				}
 			} else {
-				th->putFailCpFileInfo(d);
+				th->putFailCpFileInfo(d->taskId_, start_time, end_time, d->retryNum_);
 				LOG_ERROR("execute command failed: %s", cmd.c_str());
 			}
 		}
 	}
 }
 
-CpThread::CpThread(CpFileInfo& fileInfo, const std::string& hostname) : fileInfo_(fileInfo)
-	,hostname_(hostname),pthreadId_(0)
+CpThread::CpThread(CpFileInfo& fileInfo, hostinfo* host) : fileInfo_(fileInfo), host_(host), pthreadId_(0)
 {}
 
 bool CpThread::start()
@@ -65,15 +69,38 @@ int CpThread::join()
 	return pthread_join(pthreadId_, NULL);
 }
 
+void CpThread::strReplace(std::string& str, std::string strFind, std::string strReplace)
+{
+	string::size_type pos=0;
+	string::size_type a=strFind.size();
+	string::size_type b=strReplace.size();
+	while((pos=str.find(strFind,pos))!=string::npos) {
+		str.replace(pos,a,strReplace);
+		pos+=b;
+	}
+}
+
 //ssh dn1 "cp /srcfile /dstfile"
 std::string CpThread::buildCommand(dirpair* p)
 {
 	string command("ssh ");
-	command += hostname_;
+	command += host_->host_;
 	command += " \" cp ";
-	command += p->srcPath_;
+	command += host_->dayu_mount_path;
+	//command += "/";
+	//command += p->srcPath_;
+	string srcStr = p->srcPath_;
+	strReplace(srcStr, " ", "\\ ");
+	command += srcStr;
+
 	command += " ";
-	command += p->dstPath_;
+	command += host_->hdfs_mount_path;
+	//command += "/";
+	//command += p->dstPath_;
+	string dstStr = p->dstPath_;
+	strReplace(dstStr, " ", "\\ ");
+	command += dstStr;
 	command += " \"";
 	return command;
 }
+

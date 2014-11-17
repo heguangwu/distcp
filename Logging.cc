@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include "CpConfig.h"
-
+#include <sstream>
 using namespace std;
 
 Logging WARN_W;
@@ -32,6 +32,16 @@ bool LOG_INIT(LogLevel l, const char* moduleName, const char* logDir)
 			exit(1);
 		}
 	}
+	time_t t = time(NULL);
+	struct tm* ft = localtime(&t);
+	memset(Configure::startTime, 0, 200);
+	if (strftime(Configure::startTime, sizeof(Configure::startTime), "%Y-%m-%d-%H-%M-%S", ft) == 0) {
+		LOG_WARN("strftime convert failed");
+		stringstream st;
+		st<<t;
+		memcpy(Configure::startTime, st.str().c_str(), st.str().length());
+	}
+
 	string localtion_info = logDir;
 	localtion_info += "/";
 	localtion_info += moduleName;

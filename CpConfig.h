@@ -22,8 +22,9 @@ public:
 
 	static std::string LogDir;
 
-	static std::vector<std::string> HOSTS;
 	static char startTime[200];
+
+	static int taskId;
 
 };
 

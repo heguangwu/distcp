@@ -8,66 +8,53 @@
 #ifndef CPFILEINFO_H_
 #define CPFILEINFO_H_
 
-#include <string>
-#include <vector>
-#include "CpConfig.h"
 #include "MutexLock.h"
+#include "MysqlConn.h"
+#include "TaskInfo.h"
+#include <string>
+#include <deque>
+#include <vector>
 #include <stdint.h>
 
-struct dirpair
-{
-	//uint64_t srcFileSize_;
-	std::string srcPath_;
-	std::string dstPath_;
-};
 
 class CpFileInfo
 {
 public:
-	explicit CpFileInfo();
+	explicit CpFileInfo(MysqlConn* conn);
 	~CpFileInfo();
 
-	void setSrcFile(const char* srcDir) {srcDir_ = Configure::DayuPrefix + srcDir;}
-	bool loadSrcFiles(const char* loadFile);
+	inline const std::vector< hostinfo* >& getHostsInfo() const {return cpHosts_;}
+	inline const std::vector< mkdirinfo* >& getMkdirsInfo() const {return mkDirs_;}
 
-	bool readCpFileList();
-	const std::vector< std::string >& getMkDirs() {
-		return mkDirs_;
+	inline void clearHostInfo() {
+		while(!cpHosts_.empty()) {
+			hostinfo* h = cpHosts_.back();
+			cpHosts_.pop_back();
+			delete h;
+		}
+		cpHosts_.clear();
 	}
 
 	dirpair* popDirPair();
-	void pushSuccessPair(dirpair* p);
-	void pushFailedPair(dirpair* p);
+	void updateResult(int taskId, bool success, time_t start, time_t end, const char* host, short retry = 0);
 
-	void printResult();
+	inline void addMkDirInfo(mkdirinfo* d) {mkDirs_.push_back(d);}
+	inline void addCpFileInfo(dirpair* d) {cpFiles_.push_back(d);}
+	inline void addCpHostInfo(hostinfo* d) {cpHosts_.push_back(d);}
 
 	bool mkAlldirs();
+	inline bool isComplete() {return cpFiles_.empty();}
 
 private:
-	bool readFileList(const char* basePath);
-
-private:
-	std::string srcDir_;
 	MutexLock lock_;
-	MutexLock slock_;
-	MutexLock flock_;
+	MutexLock resLock_;
 
-	std::vector< std::string > mkDirs_;
-	std::vector< dirpair* > cpFiles_;
-	FILE* cpAll_;
-	FILE* cpSucc_;
-	FILE* cpFail_;
+	std::vector< mkdirinfo* > mkDirs_;
+	std::deque< dirpair* > cpFiles_;
+	std::vector< hostinfo* > cpHosts_;
+	MysqlConn* mysqlConn_;
 
-	size_t allNum_;
-	size_t succNum_;
-	//uint64_t cpFileSizeSum_;
-	//uint64_t cpFinishedSize_;
-	std::vector< dirpair* > cpSuccFiles_;
-	std::vector< dirpair* > cpFailFiles_;
-
-
-//noncopyable
-private:
+private: //noncopyable
 	CpFileInfo( const CpFileInfo& );
 	CpFileInfo& operator=( const CpFileInfo& );
 };

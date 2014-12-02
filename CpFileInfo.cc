@@ -69,6 +69,17 @@ void CpFileInfo::updateResult(int taskId, bool success, time_t start, time_t end
 	mysqlConn_->executeSQL(sql);
 }
 
+void CpFileInfo::updateProcess(int taskId)
+{
+	MutexLockGuard g(resLock_);
+	stringstream ss;
+	int status = 1;
+	ss<<"UPDATE fm_task SET status = "<<status
+			<<" WHERE task_id = "<<taskId<<";";
+	string sql = ss.str();
+	mysqlConn_->executeSQL(sql);
+}
+
 bool CpFileInfo::mkAlldirs()
 {
 	char host[32] = {0};

@@ -124,10 +124,10 @@ int main(int argc, char* argv[])
 
 	CpFileInfo cfinfo(conn);
 
-	if( !conn->queryMkDirs(cfinfo) ){
+	/*if( !conn->queryMkDirs(cfinfo) ){
 		LOG_ERROR("Get mkdir information from MySQL failed");
 		return -3;
-	}
+	}*/
 #ifdef DEBUG
 	const vector< mkdirinfo* >& dirs = cfinfo.getMkdirsInfo();
 	for(size_t i = 0; i < dirs.size(); i++) {
@@ -135,11 +135,11 @@ int main(int argc, char* argv[])
 	}
 #endif
 	LOG_INFO("Get mkdir information SUCCESS");
-	if( !cfinfo.mkAlldirs() ) {
+	/*if( !cfinfo.mkAlldirs() ) {
 		LOG_ERROR("Create directory failed");
 		return -4;
 	}
-	LOG_INFO("Create directory SUCCESS");
+	LOG_INFO("Create directory SUCCESS");*/
 
 	while(true) {
 		if( !conn->queryHosts(cfinfo) ){
@@ -198,7 +198,8 @@ int main(int argc, char* argv[])
 	string sql = ss.str();
 	if(!conn->executeSQL(sql)) {
 		LOG_ERROR("execute sql: %s failed", updateStatus.c_str());
+		return -1;
 	}
-
+	LOG_WARN("execute finished");
 	return 0;
 }

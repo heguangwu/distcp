@@ -37,6 +37,7 @@ public:
 
 	dirpair* popDirPair();
 	void updateResult(int taskId, bool success, time_t start, time_t end, const char* host, short retry = 0);
+	void updateProcess(int taskId);
 
 	inline void addMkDirInfo(mkdirinfo* d) {mkDirs_.push_back(d);}
 	inline void addCpFileInfo(dirpair* d) {cpFiles_.push_back(d);}

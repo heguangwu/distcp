@@ -24,11 +24,13 @@ public:
 	inline dirpair* getCpFileInfo() {return fileInfo_.popDirPair();}
 	inline void putSuccCpFileInfo(int taskId, time_t start, time_t end, short retry) {fileInfo_.updateResult(taskId, true, start, end, host_->host_.c_str(), retry);}
 	inline void putFailCpFileInfo(int taskId, time_t start, time_t end, short retry) {fileInfo_.updateResult(taskId, false, start, end, host_->host_.c_str(), retry);}
+	inline void putProcessCpFileInfo(int taskId) {fileInfo_.updateProcess(taskId);}
 
 	std::string buildCommand(dirpair* p);
 
 public:
 	static void strReplace(std::string& str, std::string strFind, std::string strReplace);
+	static void strConvert(std::string& str);
 
 private:
 	CpFileInfo& fileInfo_;

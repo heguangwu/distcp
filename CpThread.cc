@@ -30,6 +30,7 @@ static void* runThread(void* arg)
 		time_t start_time = time(NULL);
 		string cmd = th->buildCommand(d);
 		LOG_DEBUG("COMMAND: %s",cmd.c_str());
+		th->putProcessCpFileInfo(d->taskId_);
 		int status = execCmd(cmd);
 
 		time_t end_time = time(NULL);
@@ -80,6 +81,22 @@ void CpThread::strReplace(std::string& str, std::string strFind, std::string str
 	}
 }
 
+void CpThread::strConvert(string& dstStr)
+{
+	strReplace(dstStr, "\\", "\\\\\\");
+	strReplace(dstStr, " ", "\\ ");
+	strReplace(dstStr, "(", "\\(");
+	strReplace(dstStr, ")", "\\)");
+	strReplace(dstStr, "&", "\\&");
+	strReplace(dstStr, ";", "\\;");
+	strReplace(dstStr, "\"", "\\\"");
+	strReplace(dstStr, "$", "\\\\\\$");
+	strReplace(dstStr, "]", "\\]");
+	strReplace(dstStr, "`", "\\`");
+	//strReplace(dstStr, "'", "\\'");
+	//strReplace(dstStr, "”", "\\”");
+}
+
 //ssh dn1 "cp /srcfile /dstfile"
 std::string CpThread::buildCommand(dirpair* p)
 {
@@ -87,19 +104,15 @@ std::string CpThread::buildCommand(dirpair* p)
 	command += host_->host_;
 	command += " \" cp ";
 	command += host_->dayu_mount_path;
-	//command += "/";
-	//command += p->srcPath_;
-	string srcStr = p->srcPath_;
-	strReplace(srcStr, " ", "\\ ");
-	command += srcStr;
+	string src(p->srcPath_);
+	strConvert(src);
+	command += src;
 
 	command += " ";
 	command += host_->hdfs_mount_path;
-	//command += "/";
-	//command += p->dstPath_;
-	string dstStr = p->dstPath_;
-	strReplace(dstStr, " ", "\\ ");
-	command += dstStr;
+	string dst(p->dstPath_);
+	strConvert(dst);
+	command += dst;
 	command += " \"";
 	return command;
 }
